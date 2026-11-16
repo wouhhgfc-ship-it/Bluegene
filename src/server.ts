@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import User from '../models/User';
+import User from './models/User';
 
 
 import requestlogger from "./middle.js";
@@ -207,12 +207,12 @@ app.post('/birthday', (req: Request, res: Response) => {
         nextBirthday = new Date(today.getFullYear() + 1, month - 1, day);;
     }
     const msperDay = 1000 * 60 * 60 * 24;
-    const daysLeft = math.round((nextBirthday.getTime() - today.getTime()) / msperDay);
-    if (daysleft === 0) {
+    const daysLeft = Math.round((nextBirthday.getTime() - today.getTime()) / msperDay);
+    if (daysLeft === 0) {
         res.send('Happy Birthday! Today is your special day!')
         return
     }
-    res.send(`only ${dayLeft} day ${daysleft} day ${daysLeft === 1 ? '' : 's'} left until your next your birthday! `)
+    res.send(`only ${daysLeft} day ${daysLeft} day ${daysLeft === 1 ? '' : 's'} left until your next your birthday! `)
 
 })
 
