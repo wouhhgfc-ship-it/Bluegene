@@ -1,13 +1,40 @@
 import express, { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import User from '../models/User';
 
+
+import requestlogger from "./middle.js";
+import { requestTimer } from "./middle.js";
 // Load environment variables
+
+
 dotenv.config();
 
 
-// Create the Express application
 const app = express();
+const MONGO_URI: string = process.env.MONGO_URI || '';
+
+// Connect to MongoDB
+const connectDB = async () => {
+    try {
+        await mongoose.connect(MONGO_URI);
+        console.log('Successfully connected to MongoDB!');
+    } catch (error) {
+        console.error('Failed to connect to MongoDB:', error);
+        process.exit(1); // Kill the server — no point running without a database
+    }
+};
+
 app.use(express.json());
+
+// Connect first, THEN start the server
+
+
+
+// Create the Express application
+app.use(requestTimer);
+app.use(requestlogger);
 const PORT: number = Number(process.env.PORT) || 3000;
 const motivationalQuotes = [
     {
@@ -99,7 +126,7 @@ Do you wanna, do you wanna be, happy?
 </p>
         </div>`);
 });
-app.get('c', (req: Request, res: Response) => {
+app.get('/intro', (req: Request, res: Response) => {
     res.send(`<div> <h1> Losing Balance </h1>
              <p>[Intro]
              Verse 1]
@@ -128,32 +155,85 @@ app.get('/motivation', (req: Request, res: Response) => {
     res.json(message);
 });
 
+// app.post('/birthday', (req: Request, res: Response) => {
+//     const { day, month } = req.body;
+//     if (!day || !month) {
+//         return res.status(400).send('PROVIDE BOTH DAY AND MONTH')
+//     }
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+//     const currentYear = today.getFullYear();
+
+//     let nextBirthday = new Date(currentYear, month - 1, day)
+//     if (nextBirthday < today) {
+//         nextBirthday.setFullYear(currentYear + 1);
+
+//     }
+//     const difftime = nextBirthday.getTime() - today.getTime();
+//     const daysLeft = Math.ceil(difftime / (1000 * 60 * 60 * 24));
+//     if (daysLeft === 0) {
+//         res.send(" HAPPY BIRTHDAY")
+//     }
+//     else {
+//         res.send(`YOUR BIRTHDAY IS ${daysLeft} day${daysLeft === 1 ? "" : "s"}!`)
+//     }
+// });
+
+
+
+
 app.post('/birthday', (req: Request, res: Response) => {
-    const { day, month } = req.body;
-    if (!day || !month) {
-        return res.status(400).send('PROVIDE BOTH DAY AND MONTH')
-    }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const currentYear = today.getFullYear();
+    const day = Number(req.body?.day);
+    const month = Number(req.body?.month);
 
-    let nextBirthday = new Date(currentYear, month - 1, day)
+    // ValiditE AGAINST A LEAP YEAR SO 29 FEB IS ACCEPTED
+    const check = new Date(2000, month - 1, day);
+    if (
+        !Number.isInteger(day) ||
+        !Number.isInteger(month) ||
+        check.getMonth() !== month - 1 ||
+        check.getMonth() !== day
+
+
+
+    ) {
+        res.status(400).send('please send a valid "day" and "month" in  json format e.g { "month":2 "day":22}')
+        return;
+    }
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let nextBirthday = new Date(today.getFullYear(), month - 1, day);
     if (nextBirthday < today) {
-        nextBirthday.setFullYear(currentYear + 1);
-
+        nextBirthday = new Date(today.getFullYear() + 1, month - 1, day);;
     }
-    const difftime = nextBirthday.getTime() - today.getTime();
-    const daysLeft = Math.ceil(difftime / (1000 * 60 * 60 * 24));
-    if (daysLeft === 0) {
-        res.send(" HAPPY BIRTHDAY")
+    const msperDay = 1000 * 60 * 60 * 24;
+    const daysLeft = math.round((nextBirthday.getTime() - today.getTime()) / msperDay);
+    if (daysleft === 0) {
+        res.send('Happy Birthday! Today is your special day!')
+        return
     }
-    else {
-        res.send(`YOUR BIRTHDAY IS ${daysLeft} day${daysLeft === 1 ? "" : "s"}!`)
+    res.send(`only ${dayLeft} day ${daysleft} day ${daysLeft === 1 ? '' : 's'} left until your next your birthday! `)
+
+})
+
+// Method 1: Using .create() — clean and simple
+const createUser = async (req: Request, res: Response) => {
+    try {
+        const newUser = await User.create({
+            name: req.body.name,
+            email: req.body.email,
+            age: req.body.age,
+        });
+
+        res.status(201).json({ message: 'User created', data: newUser });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
     }
-});
-
-
+};
 // Start the server and begin listening for requests
+
+connectDB().then(() => {
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
-});
+    });
+}); 
